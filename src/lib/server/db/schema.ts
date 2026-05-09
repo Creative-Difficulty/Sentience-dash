@@ -1,4 +1,4 @@
-import { pgTable, index, foreignKey, uuid, bigint, timestamp, text, unique, boolean, check, vector, integer, jsonb, doublePrecision, real, smallint, pgEnum, vector } from "drizzle-orm/pg-core"
+import { pgTable, index, foreignKey, uuid, bigint, timestamp, text, unique, boolean, check, integer, jsonb, doublePrecision, real, smallint, pgEnum, vector } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 export const activityRecordType = pgEnum("activity_record_type", ['activity', 'fact', 'skill', 'emotion'])
@@ -37,7 +37,8 @@ export const vestibuleUsers = pgTable("vestibule_users", {
     id: uuid().defaultRandom().primaryKey().notNull(),
     nickname: text(),
     // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-    introMessageId: bigint("intro_message_id", { mode: "number" }),
+    // introMessageId: bigint("intro_message_id", { mode: "number" }),
+    introMessageId: text("intro_message_id"),
     scoreId: uuid("score_id"),
     scoreLastUpdated: timestamp("score_last_updated", { withTimezone: true, mode: 'string' }),
     // TODO: failed to parse database type 'bytea'
@@ -46,11 +47,11 @@ export const vestibuleUsers = pgTable("vestibule_users", {
     // TODO: failed to parse database type 'bytea'
     introDiagram: vector("intro_diagram", { dimensions: 1536 }),
 }, (table) => [
-    foreignKey({
-        columns: [table.introMessageId],
-        foreignColumns: [messages.messageId],
-        name: "fk_vestibule_users_intro_message"
-    }),
+    // foreignKey({
+    //     columns: [table.introMessageId],
+    //     foreignColumns: [messages.messageId],
+    //     name: "fk_vestibule_users_intro_message"
+    // }),
     foreignKey({
         columns: [table.scoreId],
         foreignColumns: [scores.id],
