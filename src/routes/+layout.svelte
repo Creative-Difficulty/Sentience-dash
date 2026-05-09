@@ -1,5 +1,5 @@
 <script lang="ts">
-	import favicon from '$lib/assets/favicon.svg';
+	import owl from '$lib/assets/owl.svg';
 
 	import 'carbon-components-svelte/css/g100.css';
 	import '@carbon/charts-svelte/styles.css';
@@ -17,13 +17,18 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+	<link rel="icon" href={owl} />
+	<title
+		>Sentience | {navPages.find(
+			(e) => e.href == page.url.pathname.slice(page.url.pathname.lastIndexOf('/'))
+		)?.title}</title
+	>
 </svelte:head>
 
 <div class="layout">
 	<SideNav isOpen fixed>
 		<SideNavItems>
-			{#each navPages as page_obj (page_obj)}
+			{#each navPages as page_obj (page_obj.href)}
 				<SideNavLink
 					text={page_obj.title}
 					href={page_obj.href}
@@ -31,6 +36,7 @@
 				/>
 			{/each}
 		</SideNavItems>
+		<img alt="Cool owl by Sylvan Franklin" src={owl} />
 	</SideNav>
 	<main class="content">
 		<div class="page-header">
@@ -42,10 +48,17 @@
 		</div>
 		{@render children()}
 	</main>
-	<footer>Favicon and other art by Sylvan Franklin<br />Website by Creative-Difficulty</footer>
+	<footer>Favicon and owl drawing by Sylvan Franklin<br />Website by Creative-Difficulty</footer>
 </div>
 
 <style>
+	img {
+		height: 20%;
+		bottom: 5%;
+		left: 2%;
+		position: relative;
+	}
+
 	footer {
 		position: absolute;
 		left: 0;
