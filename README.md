@@ -15,7 +15,7 @@ To recreate this project with the same configuration:
 
 ```sh
 # recreate this project
-bun x sv@0.15.3 create --template minimal --types ts --add drizzle="database:postgresql+postgresql:postgres.js+docker:no" tailwindcss="plugins:none" eslint prettier --install bun .
+bun x sv@0.15.3 create --template minimal --types ts --add prettier eslint drizzle="database:postgresql+postgresql:postgres.js+docker:no" --install bun ./
 ```
 
 ## Developing
