@@ -2,7 +2,7 @@
 	import { Column, Grid, Row, Tile, Section, Tag } from 'carbon-components-svelte';
 
 	import type { PageProps } from './$types';
-	import { AreaChart, ScaleTypes } from '@carbon/charts-svelte';
+	import { AreaChart, ChartTheme, ScaleTypes } from '@carbon/charts-svelte';
 
 	let { data }: PageProps = $props();
 </script>
@@ -53,8 +53,8 @@
 					<AreaChart
 						data={data.data!}
 						options={{
-							theme: 'g90',
-							title: 'Messages sent per hour in the last 24 hours',
+							theme: ChartTheme.G100,
+							title: 'Messages recorded per hour in the last 24 hours',
 							height: '200px',
 							grid: {
 								y: {
@@ -67,7 +67,11 @@
 							// TODO fix
 							// style: { prefix: 'border-style: none;' },
 							axes: {
-								left: { mapsTo: 'count', scaleType: ScaleTypes.LINEAR, title: 'Messages sent' },
+								left: {
+									mapsTo: 'count',
+									scaleType: ScaleTypes.LINEAR,
+									title: 'Messages'
+								},
 								bottom: { mapsTo: 'hour', scaleType: ScaleTypes.LABELS, title: 'Hours ago' }
 							},
 							legend: { enabled: false },

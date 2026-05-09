@@ -23,8 +23,12 @@
 <div class="layout">
 	<SideNav isOpen fixed>
 		<SideNavItems>
-			{#each navPages as page (page)}
-				<SideNavLink text={page.title} href={page.href} isSelected={page.href == '/'} />
+			{#each navPages as page_obj (page_obj)}
+				<SideNavLink
+					text={page_obj.title}
+					href={page_obj.href}
+					isSelected={page_obj.href == page.url.pathname.slice(page.url.pathname.lastIndexOf('/'))}
+				/>
 			{/each}
 		</SideNavItems>
 	</SideNav>
@@ -38,9 +42,19 @@
 		</div>
 		{@render children()}
 	</main>
+	<footer>Favicon and other art by Sylvan Franklin<br />Website by Creative-Difficulty</footer>
 </div>
 
 <style>
+	footer {
+		position: absolute;
+		left: 0;
+		bottom: 0;
+		width: 100%;
+		text-align: center;
+		padding-bottom: 1%;
+		line-height: 150%;
+	}
 	.layout {
 		display: flex;
 		min-height: 100vh;
