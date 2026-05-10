@@ -20,15 +20,18 @@
 		{ title: 'Conversation Explorer', href: '/explorer' },
 		{ title: 'User data', href: '/userdata' }
 	];
+
+	function isActive(href: string, pathname: string) {
+		if (href === '/') return pathname === '/';
+		return pathname === href || pathname.startsWith(href + '/');
+	}
+
+	const activePage = $derived(navPages.find((p) => isActive(p.href, page.url.pathname)));
 </script>
 
 <svelte:head>
 	<link rel="icon" href={owl} />
-	<title
-		>Sentience | {navPages.find(
-			(e) => e.href == page.url.pathname.slice(page.url.pathname.lastIndexOf('/'))
-		)?.title}</title
-	>
+	<title>Sentience | {activePage?.title ?? ''}</title>
 </svelte:head>
 
 <div class="page">
@@ -38,7 +41,7 @@
 				<SideNavLink
 					text={page_obj.title}
 					href={page_obj.href}
-					isSelected={page_obj.href == page.url.pathname.slice(page.url.pathname.lastIndexOf('/'))}
+					isSelected={isActive(page_obj.href, page.url.pathname)}
 				/>
 			{/each}
 		</SideNavItems>
@@ -48,15 +51,14 @@
 		<div class="page-header">
 			<Heading>Sentience</Heading>
 			<p class="subtitle">
-				{navPages.find((e) => e.href == page.url.pathname.slice(page.url.pathname.lastIndexOf('/')))
-					?.title}
+				{activePage?.title ?? ''}
 			</p>
 		</div>
 		{@render children()}
 	</main>
 	{#if page.data.error}
 		<div>
-			<ToastNotification lowContrast title="Error" subtitle={page.data.error} />
+			<ToastNotification style="z-index: 999;" title="Error" subtitle={page.data.error} />
 		</div>
 	{/if}
 	<footer>Favicon and owl drawing by Sylvan Franklin<br />Website by Creative-Difficulty</footer>

@@ -1,42 +1,13 @@
-# sv
+# Sentience dashboard
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+![Sentience dashboard](sentience.png)
 
-## Creating a project
+This is the dashboard used to display all information gathered by the sentience bot. It uses SvelteKit and the IBM carbon components for Svelte as well as the carbon charts for svelte library. It also holds a conversation explorer page with data on all recorded messages and highlights them into topics (classified by `topic-sorter`) and a User data page with facts the the `fact-extractor` worker has extracted about users.
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Installation
 
-```sh
-# create a new project
-npx sv create my-app
-```
+It is dockerized, however not included in the docker-compose with the main sentience workers, as it lives in a different repository.
 
-To recreate this project with the same configuration:
+## Contribution
 
-```sh
-# recreate this project
-bun x sv@0.15.3 create --template minimal --types ts --add prettier eslint drizzle="database:postgresql+postgresql:postgres.js+docker:no" --install bun ./
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+Please refer to the guide in the main sentience-workers repository.

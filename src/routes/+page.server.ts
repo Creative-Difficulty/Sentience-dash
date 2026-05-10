@@ -118,6 +118,16 @@ export const load: PageServerLoad = async () => {
             .groupBy(discordChannels.channelId, discordChannels.name)
             .orderBy(desc(count(messages.messageId)));
 
+        const totalHourlyMessages = await db
+            .select({
+                hour: sql<number>`EXTRACT(HOUR FROM ${messages.sentAt})`,
+                messageAmount: count(messages.messageId),
+            })
+            .from(messages)
+            .where(isNull(messages.deletedAt))
+            .groupBy(sql`EXTRACT(HOUR FROM ${messages.sentAt})`)
+            .orderBy(sql`EXTRACT(HOUR FROM ${messages.sentAt})`);
+
         return {
             twentyfourHourChart: twofourHoursData as ChartTabularData,
             totalMessages: totalMessages[0].count,
@@ -138,6 +148,7 @@ export const load: PageServerLoad = async () => {
                     value: e.amount
                 };
             })) as ChartTabularData,
+            totalHourlyMessages: totalHourlyMessages as ChartTabularData
         };
 
     } catch (e: unknown) {

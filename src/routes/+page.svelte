@@ -13,7 +13,7 @@
 
 	import type { PageProps } from './$types';
 	import { Alignments, AreaChart, ChartTheme, DonutChart, ScaleTypes } from '@carbon/charts-svelte';
-	import { ArrowDown, ArrowUp } from 'carbon-icons-svelte';
+	import { ArrowDown, ArrowUp, ErrorFilled } from 'carbon-icons-svelte';
 
 	let { data }: PageProps = $props();
 </script>
@@ -63,7 +63,7 @@
 						data={data.allTimeChart!}
 						options={{
 							theme: ChartTheme.G100,
-							title: 'Alltime Messages recorded',
+							title: 'Messages recorded per day',
 							height: '200px',
 							grid: {
 								y: {
@@ -82,6 +82,46 @@
 									title: 'Messages'
 								},
 								bottom: { mapsTo: 'day', scaleType: ScaleTypes.LABELS, title: 'Days ago' }
+							},
+							legend: { enabled: false },
+							color: {
+								gradient: {
+									enabled: true
+								}
+							}
+						}}
+					/>
+				</Tile>
+			</Column>
+			<Column lg={8} md={8} sm={4}>
+				<Tile>
+					<AreaChart
+						data={data.totalHourlyMessages!}
+						options={{
+							theme: ChartTheme.G100,
+							title: 'Server activity at each hour of the day (cumulative)',
+							height: '200px',
+							grid: {
+								y: {
+									enabled: false
+								},
+								x: {
+									enabled: false
+								}
+							},
+							// TODO fix
+							// style: { prefix: 'border-style: none;' },
+							axes: {
+								left: {
+									mapsTo: 'messageAmount',
+									scaleType: ScaleTypes.LINEAR,
+									title: 'Messages'
+								},
+								bottom: {
+									mapsTo: 'hour',
+									scaleType: ScaleTypes.LABELS,
+									title: 'Hour of the day (UTC)'
+								}
 							},
 							legend: { enabled: false },
 							color: {
@@ -170,17 +210,22 @@
 						<p class="stat-value">{data.totalMessagesLasttwoFourH}</p>
 						<Tag
 							size="sm"
-							type={data.totalMessagesprevTwoFourH! > data.totalMessagesLasttwoFourH!
-								? 'red'
-								: 'green'}
+							type={!data.totalMessagesprevTwoFourH || !data.totalMessagesLasttwoFourH
+								? 'blue'
+								: data.totalMessagesprevTwoFourH > data.totalMessagesLasttwoFourH
+									? 'red'
+									: 'green'}
 						>
 							<Row>
 								{#if data.totalMessagesprevTwoFourH! > data.totalMessagesLasttwoFourH!}
 									Down {data.totalMessagesprevTwoFourH! - data.totalMessagesLasttwoFourH!} messages from
 									yesterday
 									<ArrowDown />
+								{:else if !data.totalMessagesprevTwoFourH || !data.totalMessagesLasttwoFourH}
+									<ErrorFilled />
+									Could not compute difference
 								{:else}
-									Up {data.totalMessagesprevTwoFourH! - data.totalMessagesLasttwoFourH!} messages from
+									Up {data.totalMessagesLasttwoFourH! - data.totalMessagesprevTwoFourH!} messages from
 									yesterday
 									<ArrowUp />
 								{/if}
@@ -189,9 +234,10 @@
 					</div>
 				</Tile>
 			</Column>
-			<Column lg={8} md={8} sm={4}>
+			<Column lg={7} md={5} sm={2}>
 				<Tile>
 					<DonutChart
+						style="padding: 2%;"
 						data={data.channelTypeCounts!}
 						options={{
 							title: 'Channel types',
@@ -207,22 +253,23 @@
 									label: 'Channels'
 								}
 							},
-							height: '400px',
+							height: '300px',
 							theme: 'g100'
 						}}
 					/>
 				</Tile>
 			</Column>
-			<Column lg={8} md={8} sm={4}>
+			<Column lg={7} md={5} sm={2}>
 				<Tile>
 					<DonutChart
+						style="padding: 2%;"
 						data={data.messageAmountPerChannel!}
 						options={{
 							title: 'Channels by message share',
 							resizable: true,
 							legend: {
-								position: 'left',
 								enabled: false
+								// additionalItems: data.messageAmountPerChannel!.slice(0, 5).map((x) => x.group)
 							},
 							donut: {
 								center: {
@@ -231,8 +278,8 @@
 								alignment: Alignments.CENTER
 							},
 
-							height: '400px',
-							theme: 'g100'
+							theme: 'g100',
+							height: '300px'
 						}}
 					/>
 				</Tile>
@@ -242,6 +289,10 @@
 </Section>
 
 <style>
+	/* :global(*) {
+		overflow: hidden;
+	} */
+
 	.stat-tile {
 		display: flex;
 		flex-direction: column;
