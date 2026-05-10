@@ -4,7 +4,13 @@
 	import 'carbon-components-svelte/css/g100.css';
 	import '@carbon/charts-svelte/styles.css';
 
-	import { SideNav, SideNavItems, SideNavLink, Heading } from 'carbon-components-svelte';
+	import {
+		SideNav,
+		SideNavItems,
+		SideNavLink,
+		Heading,
+		ToastNotification
+	} from 'carbon-components-svelte';
 	import { page } from '$app/state';
 
 	let { children } = $props();
@@ -48,6 +54,11 @@
 		</div>
 		{@render children()}
 	</main>
+	{#if page.data.error}
+		<div>
+			<ToastNotification lowContrast title="Error" subtitle={page.data.error} />
+		</div>
+	{/if}
 	<footer>Favicon and owl drawing by Sylvan Franklin<br />Website by Creative-Difficulty</footer>
 </div>
 
