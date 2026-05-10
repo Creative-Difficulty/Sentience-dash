@@ -24,6 +24,9 @@
 		"@sveltejs/kit": "^2.57.0",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@types/node": "^24",
+		"carbon-components-svelte": "^0.107.1",
+		"carbon-icons-svelte": "^13.11.0",
+		"carbon-preprocess-svelte": "^0.11.30",
 		"drizzle-kit": "^0.31.10",
 		"drizzle-orm": "^0.45.2",
 		"eslint": "^10.2.0",
@@ -37,9 +40,7 @@
 		"svelte-check": "^4.4.6",
 		"typescript": "^6.0.2",
 		"typescript-eslint": "^8.58.1",
-		"vite": "^8.0.7",
-		"carbon-preprocess-svelte": "^0.11.30",
-		"carbon-components-svelte": "^0.107.1"
+		"vite": "^8.0.7"
 	},
 	"dependencies": {
 		"@carbon/charts-svelte": "^1.22.18"

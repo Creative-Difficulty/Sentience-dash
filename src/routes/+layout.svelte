@@ -31,7 +31,7 @@
 	>
 </svelte:head>
 
-<div class="layout">
+<div class="page">
 	<SideNav isOpen fixed>
 		<SideNavItems>
 			{#each navPages as page_obj (page_obj.href)}
@@ -63,25 +63,24 @@
 </div>
 
 <style>
-	img {
-		height: 20%;
-		bottom: 5%;
-		left: 2%;
-		position: relative;
+	:global(html, body) {
+		height: 100%;
+		margin: 0;
+	}
+
+	.page {
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+	}
+
+	main {
+		flex: 1;
 	}
 
 	footer {
-		position: absolute;
-		left: 0;
-		bottom: 0;
-		width: 100%;
 		text-align: center;
-		padding-bottom: 1%;
-		line-height: 150%;
-	}
-	.layout {
-		display: flex;
-		min-height: 100vh;
+		padding: 20px;
 	}
 
 	.content {
