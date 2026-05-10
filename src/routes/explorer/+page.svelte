@@ -130,21 +130,32 @@
 		setTimeout(() => el.classList.remove('highlighted'), 1500);
 	}
 
-	function topicHue(topicId: string) {
-		// Two pass mixing hash so adjacent UUIDs land on visually distinct hues
+	const TOPIC_PALETTE = [
+		{ tint: '#3b1f3b', chip: '#8a3ffc' },
+		{ tint: '#1c3a5e', chip: '#4589ff' },
+		{ tint: '#1d3a3a', chip: '#08bdba' },
+		{ tint: '#3a2010', chip: '#ff7eb6' },
+		{ tint: '#1f3d1f', chip: '#42be65' },
+		{ tint: '#3d2c0a', chip: '#d2a106' },
+		{ tint: '#3a1818', chip: '#fa4d56' },
+		{ tint: '#2a2a3d', chip: '#a56eff' },
+		{ tint: '#3d2840', chip: '#ee5396' },
+		{ tint: '#1c3d35', chip: '#007d79' }
+	];
+
+	function topicIndex(topicId: string) {
 		let hash = 0;
-		for (const c of topicId) hash = (hash * 131 + c.charCodeAt(0)) & 0xffffffff;
-		// Spread across full hue circle with golden angle for better separation
-		return Math.floor((((Math.abs(hash) * 137.508) % 360) + 360) % 360);
+		for (const c of topicId) hash = (hash * 31 + c.charCodeAt(0)) & 0xffffffff;
+		return Math.abs(hash) % TOPIC_PALETTE.length;
 	}
 
 	function topicTint(topicId: string | undefined | null) {
 		if (!topicId) return 'transparent';
-		return `hsla(${topicHue(topicId)}, 60%, 50%, 0.2)`;
+		return TOPIC_PALETTE[topicIndex(topicId)].tint;
 	}
 
 	function topicChipBg(topicId: string) {
-		return `hsl(${topicHue(topicId)}, 55%, 32%)`;
+		return TOPIC_PALETTE[topicIndex(topicId)].chip;
 	}
 </script>
 
