@@ -68,6 +68,10 @@
 		margin: 0;
 	}
 
+	img {
+		padding-bottom: 20%;
+	}
+
 	.page {
 		min-height: 100vh;
 		display: flex;

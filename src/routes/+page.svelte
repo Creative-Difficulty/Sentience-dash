@@ -12,7 +12,7 @@
 	} from 'carbon-components-svelte';
 
 	import type { PageProps } from './$types';
-	import { AreaChart, ChartTheme, DonutChart, ScaleTypes } from '@carbon/charts-svelte';
+	import { Alignments, AreaChart, ChartTheme, DonutChart, ScaleTypes } from '@carbon/charts-svelte';
 	import { ArrowDown, ArrowUp } from 'carbon-icons-svelte';
 
 	let { data }: PageProps = $props();
@@ -93,30 +93,6 @@
 					/>
 				</Tile>
 			</Column>
-			<Column lg={8} md={8} sm={4}>
-				<Tile>
-					<DonutChart
-						data={data.channelTypeCounts!}
-						options={{
-							title: 'Channel types',
-							resizable: true,
-							legend: {
-								position: 'left',
-								truncation: {
-									type: 'none'
-								}
-							},
-							donut: {
-								center: {
-									label: 'Channels'
-								}
-							},
-							height: '400px',
-							theme: 'g100'
-						}}
-					/>
-				</Tile>
-			</Column>
 
 			<Column lg={4} md={4} sm={4}>
 				<Tile>
@@ -127,13 +103,15 @@
 								<div style="line-height: 150%;">
 									<ListItem>
 										{#if index === 0}
-											<Section level={3}>
-												<Heading
-													>{user.username}: {user.messageCount}
+											<div style="padding-bottom: 3%;">
+												<Section level={3}>
+													<Heading
+														>{user.username}: {user.messageCount}
 
-													{user.messageCount == 1 ? 'message' : 'messages'}</Heading
-												>
-											</Section>
+														{user.messageCount == 1 ? 'message' : 'messages'}</Heading
+													>
+												</Section>
+											</div>
 										{:else}
 											{user.username}: {user.messageCount}
 
@@ -155,13 +133,15 @@
 								<div style="line-height: 150%;">
 									<ListItem>
 										{#if index === 0}
-											<Section level={3}>
-												<Heading
-													>{user.username}: {user.messageCount}
+											<div style="padding-bottom: 3%;">
+												<Section level={3}>
+													<Heading
+														>{user.username}: {user.messageCount}
 
-													{user.messageCount == 1 ? 'message' : 'messages'}</Heading
-												>
-											</Section>
+														{user.messageCount == 1 ? 'message' : 'messages'}</Heading
+													>
+												</Section>
+											</div>
 										{:else}
 											{user.username}: {user.messageCount}
 
@@ -189,6 +169,7 @@
 						<p class="stat-label">Messages recorded in the last 24 hours</p>
 						<p class="stat-value">{data.totalMessagesLasttwoFourH}</p>
 						<Tag
+							size="sm"
 							type={data.totalMessagesprevTwoFourH! > data.totalMessagesLasttwoFourH!
 								? 'red'
 								: 'green'}
@@ -206,6 +187,54 @@
 							</Row>
 						</Tag>
 					</div>
+				</Tile>
+			</Column>
+			<Column lg={8} md={8} sm={4}>
+				<Tile>
+					<DonutChart
+						data={data.channelTypeCounts!}
+						options={{
+							title: 'Channel types',
+							resizable: true,
+							legend: {
+								position: 'left',
+								truncation: {
+									type: 'none'
+								}
+							},
+							donut: {
+								center: {
+									label: 'Channels'
+								}
+							},
+							height: '400px',
+							theme: 'g100'
+						}}
+					/>
+				</Tile>
+			</Column>
+			<Column lg={8} md={8} sm={4}>
+				<Tile>
+					<DonutChart
+						data={data.messageAmountPerChannel!}
+						options={{
+							title: 'Channels by message share',
+							resizable: true,
+							legend: {
+								position: 'left',
+								enabled: false
+							},
+							donut: {
+								center: {
+									label: 'Total messages'
+								},
+								alignment: Alignments.CENTER
+							},
+
+							height: '400px',
+							theme: 'g100'
+						}}
+					/>
 				</Tile>
 			</Column>
 		</Row>

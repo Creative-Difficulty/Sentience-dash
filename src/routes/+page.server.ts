@@ -107,6 +107,17 @@ export const load: PageServerLoad = async () => {
             .from(discordChannels)
             .groupBy(discordChannels.channelType);
 
+        const messageAmountPerChannel = await db
+            .select({
+                name: discordChannels.name,
+                amount: count(messages.messageId),
+            })
+            .from(messages)
+            .innerJoin(discordChannels, eq(messages.channelId, discordChannels.channelId))
+            .where(isNull(messages.deletedAt))
+            .groupBy(discordChannels.channelId, discordChannels.name)
+            .orderBy(desc(count(messages.messageId)));
+
         return {
             twentyfourHourChart: twofourHoursData as ChartTabularData,
             totalMessages: totalMessages[0].count,
@@ -120,10 +131,18 @@ export const load: PageServerLoad = async () => {
                     value: e.amount
                 };
             })) as ChartTabularData,
-            mostActiveUsersEver
+            mostActiveUsersEver,
+            messageAmountPerChannel: (messageAmountPerChannel.map((e) => {
+                return {
+                    group: e.name,
+                    value: e.amount
+                };
+            })) as ChartTabularData,
         };
 
-    } catch (e) {
-        return { error: e as string };
-    }
-};
+    } catch (e: unknown) {
+        if (e instanceof Error) {
+            return { error: e.toString() };
+        }
+    };
+}
