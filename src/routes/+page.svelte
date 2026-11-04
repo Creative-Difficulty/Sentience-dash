@@ -209,6 +209,7 @@
 						<p class="stat-label">Messages recorded in the last 24 hours</p>
 						<p class="stat-value">{data.totalMessagesLasttwoFourH}</p>
 						<Tag
+							class="trend-tag"
 							size="sm"
 							type={!data.totalMessagesprevTwoFourH || !data.totalMessagesLasttwoFourH
 								? 'blue'
@@ -216,7 +217,7 @@
 									? 'red'
 									: 'green'}
 						>
-							<Row>
+							<span class="trend">
 								{#if data.totalMessagesprevTwoFourH! > data.totalMessagesLasttwoFourH!}
 									Down {data.totalMessagesprevTwoFourH! - data.totalMessagesLasttwoFourH!} messages from
 									yesterday
@@ -229,12 +230,12 @@
 									yesterday
 									<ArrowUp />
 								{/if}
-							</Row>
+							</span>
 						</Tag>
 					</div>
 				</Tile>
 			</Column>
-			<Column lg={7} md={5} sm={2}>
+			<Column lg={7} md={8} sm={4}>
 				<Tile>
 					<DonutChart
 						style="padding: 2%;"
@@ -259,7 +260,7 @@
 					/>
 				</Tile>
 			</Column>
-			<Column lg={7} md={5} sm={2}>
+			<Column lg={7} md={8} sm={4}>
 				<Tile>
 					<DonutChart
 						style="padding: 2%;"
@@ -298,6 +299,23 @@
 		flex-direction: column;
 		gap: 0.5rem;
 		padding: 0.5rem 0;
+		/* Discord usernames can be long unbroken strings. */
+		overflow-wrap: anywhere;
+		min-width: 0;
+	}
+
+	/* Let the trend tag grow to fit wrapped text instead of a fixed 1.5rem pill. */
+	.stat-tile :global(.trend-tag) {
+		height: auto;
+		max-width: 100%;
+		min-height: 1.5rem;
+		white-space: normal;
+	}
+
+	/* Previously a grid <Row> (negative 1rem margins) sat inside the tag and
+	   pushed its text outside the pill. */
+	.trend :global(svg) {
+		vertical-align: middle;
 	}
 
 	.stat-label {
