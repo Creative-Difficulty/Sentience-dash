@@ -13,6 +13,7 @@ import {
 } from '$lib/server/db/schema';
 import { alias } from 'drizzle-orm/pg-core';
 import { eq, and, isNull, sql } from 'drizzle-orm';
+import { assembleMessages, paginate } from '$lib/server/messages/assemble';
 
 const PAGE_SIZE = 50;
 const REPLY_PREVIEW_LEN = 120;
@@ -54,9 +55,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		.orderBy(sql`${messages.messageId} DESC`)
 		.limit(PAGE_SIZE + 1);
 
-	const hasMore = rows.length > PAGE_SIZE;
-	const page = rows.slice(0, PAGE_SIZE);
-	const nextCursor = hasMore ? page.at(-1)!.messageId : null;
+	const { page, hasMore, nextCursor } = paginate(rows, PAGE_SIZE);
 
 	if (!page.length) return json({ messages: [], hasMore: false, nextCursor: null });
 
@@ -103,69 +102,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			.where(sql`${topicMessageRelation.messageId}::text IN ${ids}`)
 	]);
 
-	// First topic wins if a message has multiple
-	const topicByMsg = new Map<string, { topicId: string; topicName: string }>();
-	for (const t of topicRows) {
-		if (!topicByMsg.has(t.messageId)) {
-			topicByMsg.set(t.messageId, { topicId: t.topicId, topicName: t.topicName });
-		}
-	}
-
-	const attByMsg = new Map<string, typeof attRows>();
-	for (const a of attRows) {
-		if (!attByMsg.has(a.messageId)) attByMsg.set(a.messageId, []);
-		attByMsg.get(a.messageId)!.push(a);
-	}
-
-	type Reactor = { username: string; vestibuleUserId: string };
-	type RxEntry = {
-		discordEmojiId: string | null;
-		displayName: string | null;
-		url: string | null;
-		count: number;
-		reactors: Reactor[];
-	};
-	const rxByMsg = new Map<string, Map<string, RxEntry>>();
-	for (const r of rxRows) {
-		const key = r.emojiId ?? `u_${r.discordEmojiId}`;
-		if (!rxByMsg.has(r.messageId)) rxByMsg.set(r.messageId, new Map());
-		const m = rxByMsg.get(r.messageId)!;
-		if (!m.has(key)) {
-			m.set(key, {
-				discordEmojiId: r.discordEmojiId ?? null,
-				displayName: r.emojiDisplayName ?? null,
-				url: r.emojiUrl ?? null,
-				count: 0,
-				reactors: []
-			});
-		}
-		const entry = m.get(key)!;
-		entry.count++;
-		entry.reactors.push({ username: r.username, vestibuleUserId: r.vestibuleUserId });
-	}
-
-	const result = page.map((m) => ({
-		messageId: m.messageId,
-		content: m.content,
-		sentAt: m.sentAt,
-		inReplyTo: m.inReplyTo,
-		username: m.username,
-		displayName: m.displayName,
-		vestibuleUserId: m.vestibuleUserId,
-		reply:
-			m.inReplyTo && m.replyUsername
-				? {
-						messageId: m.inReplyTo,
-						username: m.replyUsername,
-						displayName: m.replyDisplayName,
-						vestibuleUserId: m.replyVestibuleUserId,
-						content: m.replyContent ?? ''
-					}
-				: null,
-		attachments: attByMsg.get(m.messageId) ?? [],
-		reactions: [...(rxByMsg.get(m.messageId)?.values() ?? [])],
-		topic: topicByMsg.get(m.messageId) ?? null
-	}));
+	const result = assembleMessages(page, attRows, rxRows, topicRows);
 
 	return json({ messages: result, hasMore, nextCursor });
 };

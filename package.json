@@ -12,6 +12,11 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",
+		"test": "vitest run",
+		"test:unit": "vitest run --project unit",
+		"test:contract": "vitest run --project contract",
+		"test:e2e": "playwright test",
+		"test:mutation": "stryker run",
 		"db:push:unsafe": "node scripts/guard-schema-write.mjs && drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate:unsafe": "node scripts/guard-schema-write.mjs && drizzle-kit migrate",
@@ -20,6 +25,9 @@
 	"devDependencies": {
 		"@eslint/compat": "^2.0.4",
 		"@eslint/js": "^10.0.1",
+		"@playwright/test": "1.63.0",
+		"@stryker-mutator/core": "10.0.0",
+		"@stryker-mutator/vitest-runner": "10.0.0",
 		"@sveltejs/adapter-node": "^5.2.13",
 		"@sveltejs/kit": "^2.57.0",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
@@ -32,6 +40,7 @@
 		"eslint": "^10.2.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.17.0",
+		"fast-check": "4.10.2",
 		"globals": "^17.4.0",
 		"postgres": "^3.4.9",
 		"prettier": "^3.8.1",
@@ -40,7 +49,8 @@
 		"svelte-check": "^4.4.6",
 		"typescript": "^6.0.2",
 		"typescript-eslint": "^8.58.1",
-		"vite": "^8.0.7"
+		"vite": "^8.0.7",
+		"vitest": "5.0.5"
 	},
 	"dependencies": {
 		"@carbon/charts-svelte": "^1.22.18"
