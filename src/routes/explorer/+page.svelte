@@ -130,17 +130,19 @@
 		setTimeout(() => el.classList.remove('highlighted'), 1500);
 	}
 
+	// `text` is the chip label colour with >= 4.5:1 contrast against `chip`
+	// (white only passes on the two darkest chips).
 	const TOPIC_PALETTE = [
-		{ tint: '#3b1f3b', chip: '#8a3ffc' },
-		{ tint: '#1c3a5e', chip: '#4589ff' },
-		{ tint: '#1d3a3a', chip: '#08bdba' },
-		{ tint: '#3a2010', chip: '#ff7eb6' },
-		{ tint: '#1f3d1f', chip: '#42be65' },
-		{ tint: '#3d2c0a', chip: '#d2a106' },
-		{ tint: '#3a1818', chip: '#fa4d56' },
-		{ tint: '#2a2a3d', chip: '#a56eff' },
-		{ tint: '#3d2840', chip: '#ee5396' },
-		{ tint: '#1c3d35', chip: '#007d79' }
+		{ tint: '#3b1f3b', chip: '#8a3ffc', text: '#ffffff' },
+		{ tint: '#1c3a5e', chip: '#4589ff', text: '#161616' },
+		{ tint: '#1d3a3a', chip: '#08bdba', text: '#161616' },
+		{ tint: '#3a2010', chip: '#ff7eb6', text: '#161616' },
+		{ tint: '#1f3d1f', chip: '#42be65', text: '#161616' },
+		{ tint: '#3d2c0a', chip: '#d2a106', text: '#161616' },
+		{ tint: '#3a1818', chip: '#fa4d56', text: '#161616' },
+		{ tint: '#2a2a3d', chip: '#a56eff', text: '#161616' },
+		{ tint: '#3d2840', chip: '#ee5396', text: '#161616' },
+		{ tint: '#1c3d35', chip: '#007d79', text: '#ffffff' }
 	];
 
 	function topicIndex(topicId: string) {
@@ -154,8 +156,9 @@
 		return TOPIC_PALETTE[topicIndex(topicId)].tint;
 	}
 
-	function topicChipBg(topicId: string) {
-		return TOPIC_PALETTE[topicIndex(topicId)].chip;
+	function topicChipStyle(topicId: string) {
+		const { chip, text } = TOPIC_PALETTE[topicIndex(topicId)];
+		return `background-color: ${chip}; color: ${text}`;
 	}
 </script>
 
@@ -245,7 +248,7 @@
 							>
 							<span class="timestamp">{formatDate(msg.sentAt)}</span>
 							{#if msg.topic}
-								<span class="topic-chip" style="background-color: {topicChipBg(msg.topic.topicId)}">
+								<span class="topic-chip" style={topicChipStyle(msg.topic.topicId)}>
 									{msg.topic.topicName}
 								</span>
 							{/if}
@@ -563,7 +566,6 @@
 		border-radius: 10px;
 		font-size: 0.65rem;
 		font-weight: 500;
-		color: #fff;
 		text-transform: lowercase;
 		letter-spacing: 0.02em;
 		white-space: nowrap;

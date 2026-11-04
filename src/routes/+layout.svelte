@@ -1,5 +1,8 @@
 <script lang="ts">
-	import owl from '$lib/assets/owl.svg';
+	// Raster versions of owl.svg (2 MB of vector paths, previously used for
+	// both the favicon and the nav image and the page's LCP element).
+	import owl from '$lib/assets/owl.webp';
+	import favicon from '$lib/assets/favicon.png';
 
 	import 'carbon-components-svelte/css/g100.css';
 	import '@carbon/charts-svelte/styles.css';
@@ -30,12 +33,17 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={owl} />
+	<link rel="icon" type="image/png" href={favicon} />
 	<title>Sentience | {activePage?.title ?? ''}</title>
+	<meta
+		name="description"
+		content="Sentience dashboard: message activity, a conversation explorer and per-user data collected from the Discord server."
+	/>
 </svelte:head>
 
+<a class="skip-link" href="#main-content">Skip to main content</a>
 <div class="page">
-	<SideNav isOpen fixed>
+	<SideNav isOpen fixed ariaLabel="Main navigation">
 		<SideNavItems>
 			{#each navPages as page_obj (page_obj.href)}
 				<SideNavLink
@@ -45,9 +53,9 @@
 				/>
 			{/each}
 		</SideNavItems>
-		<img alt="Cool owl by Sylvan Franklin" src={owl} />
+		<img alt="Cool owl by Sylvan Franklin" src={owl} width="256" height="286" decoding="async" />
 	</SideNav>
-	<main class="content">
+	<main class="content" id="main-content" tabindex="-1">
 		<div class="page-header">
 			<Heading>Sentience</Heading>
 			<p class="subtitle">
@@ -72,6 +80,28 @@
 
 	img {
 		padding-bottom: 20%;
+		width: 100%;
+		height: auto;
+	}
+
+	/* Visible only when focused with the keyboard. */
+	.skip-link {
+		position: absolute;
+		top: 0;
+		left: 0;
+		z-index: 9000;
+		padding: 0.75rem 1rem;
+		background: var(--cds-interactive-01, #0f62fe);
+		color: var(--cds-text-04, #ffffff);
+		transform: translateY(-100%);
+	}
+
+	.skip-link:focus {
+		transform: translateY(0);
+	}
+
+	main:focus {
+		outline: none;
 	}
 
 	.page {

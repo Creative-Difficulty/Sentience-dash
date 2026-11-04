@@ -118,6 +118,9 @@
 			minute: '2-digit'
 		});
 	}
+	// ToolbarSearch forwards unknown props to Carbon's <Search>, whose `labelText`
+	// names the role="search" landmark; ToolbarSearch's types just don't list it.
+	const searchLabel = (labelText: string) => ({ labelText }) as Record<string, string>;
 </script>
 
 {#if user}
@@ -133,7 +136,7 @@
 			<Row>
 				<Column lg={8} md={8} sm={4}>
 					<Tile>
-						<h4 class="card-title">Identity</h4>
+						<h2 class="card-title">Identity</h2>
 						<StructuredList condensed flush>
 							<StructuredListHead>
 								<StructuredListRow head>
@@ -163,7 +166,7 @@
 
 				<Column lg={8} md={8} sm={4}>
 					<Tile>
-						<h4 class="card-title">Discord accounts</h4>
+						<h2 class="card-title">Discord accounts</h2>
 						{#if accounts.length === 0}
 							<p class="empty">No Discord accounts linked.</p>
 						{:else}
@@ -195,7 +198,6 @@
 			<Row>
 				<Column>
 					<DataTable
-						title="Messages"
 						description={truncated
 							? `Showing the most recent 1000 messages. ${rows.length} loaded.`
 							: `${rows.length} ${rows.length === 1 ? 'message' : 'messages'} sent by this user.`}
@@ -204,9 +206,11 @@
 						{pageSize}
 						{page}
 					>
-						<Toolbar>
+						<!-- Own h2 instead of Carbon's hard-coded h4 (heading levels must not skip). -->
+						<h2 slot="titleChildren" class="bx--data-table-header__title">Messages</h2>
+						<Toolbar aria-label="Messages table toolbar">
 							<ToolbarContent>
-								<ToolbarSearch persistent shouldFilterRows />
+								<ToolbarSearch persistent shouldFilterRows {...searchLabel('Search messages')} />
 							</ToolbarContent>
 						</Toolbar>
 						<svelte:fragment slot="cell" let:cell>
@@ -235,16 +239,22 @@
 				<Column>
 					<DataTable
 						sortable
-						title="Facts & Activities"
 						description={`${factRows.length} ${factRows.length === 1 ? 'record' : 'records'} extracted for this user.`}
 						headers={factHeaders}
 						rows={factRows}
 						pageSize={factPageSize}
 						page={factPage}
 					>
-						<Toolbar>
+						<h2 slot="titleChildren" class="bx--data-table-header__title">
+							Facts &amp; Activities
+						</h2>
+						<Toolbar aria-label="Facts table toolbar">
 							<ToolbarContent>
-								<ToolbarSearch persistent shouldFilterRows />
+								<ToolbarSearch
+									persistent
+									shouldFilterRows
+									{...searchLabel('Search facts and activities')}
+								/>
 							</ToolbarContent>
 						</Toolbar>
 						<svelte:fragment slot="cell" let:cell>
