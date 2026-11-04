@@ -11,6 +11,12 @@ It is dockerized, however not included in the docker-compose with the main senti
 The docker installation exposes port 3000 for the site, visit `localhost:3000` on your machine to access it.
 
 Make sure to pass in the `DATABASE_URL` to docker when running the image, otherwise the site will not work properly.
+The image builds without a database (the DB client is created on the first request), runs as the unprivileged `bun` user and has a `HEALTHCHECK` on `GET /healthz` (`/healthz?db=1` additionally pings the database and returns 503 if it is unreachable).
+
+```sh
+docker build -t sentience-dash .
+docker run -p 3000:3000 -e DATABASE_URL=postgres://user:password@host:5432/sentience sentience-dash
+```
 
 ## Contribution
 
