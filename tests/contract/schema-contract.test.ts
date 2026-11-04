@@ -11,7 +11,14 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import postgres from 'postgres';
 import { is } from 'drizzle-orm';
-import { PgTable, getTableConfig, isPgEnum, type PgColumn, type PgEnum } from 'drizzle-orm/pg-core';
+import {
+	IndexedColumn,
+	PgTable,
+	getTableConfig,
+	isPgEnum,
+	type PgColumn,
+	type PgEnum
+} from 'drizzle-orm/pg-core';
 import * as schema from '../../src/lib/server/db/schema';
 
 const url = process.env.CONTRACT_DATABASE_URL;
@@ -31,6 +38,11 @@ const SAFE_NUMBER_BIGINTS = new Set([
 	'youtube_videos.total_likes',
 	'youtube_videos.total_comments'
 ]);
+
+type IndexDef = { cols: string[]; ops: string[]; defaults: boolean[]; partial: boolean };
+
+const uniqueSig = (table: string, cols: string[], nullsNotDistinct: boolean) =>
+	`${table}(${[...cols].sort().join(',')})${nullsNotDistinct ? ' NULLS NOT DISTINCT' : ''}`;
 
 type DbColumn = {
 	table: string;
@@ -60,6 +72,8 @@ describe.skipIf(!url)('drizzle schema matches the unidb catalog', () => {
 	let dbColumns: DbColumn[];
 	let dbPks: Map<string, string[]>;
 	let dbUniques: Set<string>;
+	let dbUniqueNames: Set<string>;
+	let dbIndexDefs: Map<string, IndexDef>;
 	let dbEnums: Map<string, string[]>;
 	let dbFks: Set<string>;
 	let dbIndexes: Set<string>;
@@ -88,16 +102,19 @@ describe.skipIf(!url)('drizzle schema matches the unidb catalog', () => {
 			WHERE n.nspname = 'public' AND i.indisprimary
 			GROUP BY c.relname`;
 		dbPks = new Map(pkRows.map((r) => [r.table, [...r.cols].sort()]));
-		const uqRows = await sql<{ table: string; cols: string[] }[]>`
-			SELECT c.relname AS table,
-			       array_agg(a.attname ORDER BY a.attname) AS cols
+		const uqRows = await sql<{ table: string; name: string; cols: string[]; nnd: boolean }[]>`
+			SELECT c.relname AS table, k.conname AS name,
+			       array_agg(a.attname ORDER BY a.attname) AS cols,
+			       bool_or(x.indnullsnotdistinct) AS nnd
 			FROM pg_constraint k
 			JOIN pg_class c ON c.oid = k.conrelid
 			JOIN pg_namespace n ON n.oid = c.relnamespace
+			JOIN pg_index x ON x.indexrelid = k.conindid
 			JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = ANY (k.conkey)
 			WHERE n.nspname = 'public' AND k.contype = 'u'
-			GROUP BY k.oid, c.relname`;
-		dbUniques = new Set(uqRows.map((r) => `${r.table}(${r.cols.join(',')})`));
+			GROUP BY k.oid, k.conname, c.relname`;
+		dbUniques = new Set(uqRows.map((r) => uniqueSig(r.table, r.cols, r.nnd)));
+		dbUniqueNames = new Set(uqRows.map((r) => `${r.table}.${r.name}`));
 		const enumRows = await sql<{ name: string; labels: string[] }[]>`
 			SELECT t.typname AS name, array_agg(e.enumlabel ORDER BY e.enumsortorder) AS labels
 			FROM pg_type t
@@ -132,6 +149,25 @@ describe.skipIf(!url)('drizzle schema matches the unidb catalog', () => {
 			WHERE n.nspname = 'public'
 			  AND NOT EXISTS (SELECT 1 FROM pg_constraint k WHERE k.conindid = x.indexrelid)`;
 		dbIndexes = new Set(idxRows.map((r) => r.sig));
+		const idxDefRows = await sql<
+			{ sig: string; cols: string[]; ops: string[]; defaults: boolean[]; partial: boolean }[]
+		>`
+			SELECT c.relname || '.' || i.relname AS sig,
+			       array_agg(coalesce(a.attname, '<expr>') ORDER BY u.ord) AS cols,
+			       array_agg(o.opcname ORDER BY u.ord) AS ops,
+			       array_agg(o.opcdefault ORDER BY u.ord) AS defaults,
+			       bool_or(x.indpred IS NOT NULL) AS partial
+			FROM pg_index x
+			JOIN pg_class i ON i.oid = x.indexrelid
+			JOIN pg_class c ON c.oid = x.indrelid
+			JOIN pg_namespace n ON n.oid = c.relnamespace
+			CROSS JOIN LATERAL unnest(x.indkey::int2[], x.indclass::oid[]) WITH ORDINALITY u(attnum, opc, ord)
+			LEFT JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = u.attnum AND u.attnum > 0
+			JOIN pg_opclass o ON o.oid = u.opc
+			WHERE n.nspname = 'public'
+			  AND NOT EXISTS (SELECT 1 FROM pg_constraint k WHERE k.conindid = x.indexrelid)
+			GROUP BY c.relname, i.relname`;
+		dbIndexDefs = new Map(idxDefRows.map((r) => [r.sig, r]));
 		const ckRows = await sql<{ sig: string }[]>`
 			SELECT c.relname || '.' || k.conname AS sig
 			FROM pg_constraint k
@@ -153,6 +189,8 @@ describe.skipIf(!url)('drizzle schema matches the unidb catalog', () => {
 		}
 
 		const seenTables = new Set<string>();
+		const dzUniques = new Set<string>();
+		const dzUniqueNames = new Set<string>();
 		for (const table of drizzleTables) {
 			const cfg = getTableConfig(table);
 			seenTables.add(cfg.name);
@@ -181,8 +219,6 @@ describe.skipIf(!url)('drizzle schema matches the unidb catalog', () => {
 					drift.push(
 						`${id}: int8 snowflake mapped to JS number (mode 'number') - loses precision above 2^53`
 					);
-				if (col.isUnique && !dbUniques.has(`${cfg.name}(${col.name})`))
-					drift.push(`${id}: unique in drizzle but not in database`);
 			}
 			for (const name of dbCols.keys()) {
 				if (!seenCols.has(name)) drift.push(`${cfg.name}.${name}: column missing in drizzle`);
@@ -196,12 +232,44 @@ describe.skipIf(!url)('drizzle schema matches the unidb catalog', () => {
 			if (dzPk.join(',') !== dbPk.join(','))
 				drift.push(`${cfg.name}: primary key drizzle=(${dzPk}) db=(${dbPk})`);
 
+			for (const col of cfg.columns as PgColumn[]) {
+				if (!col.isUnique) continue;
+				dzUniques.add(uniqueSig(cfg.name, [col.name], col.uniqueType === 'not distinct'));
+				dzUniqueNames.add(`${cfg.name}.${col.uniqueName}`);
+			}
 			for (const uq of cfg.uniqueConstraints) {
-				const key = `${cfg.name}(${uq.columns
-					.map((c) => c.name)
-					.sort()
-					.join(',')})`;
-				if (!dbUniques.has(key)) drift.push(`${key}: unique in drizzle but not in database`);
+				dzUniques.add(
+					uniqueSig(
+						cfg.name,
+						uq.columns.map((c) => c.name),
+						uq.nullsNotDistinct
+					)
+				);
+				dzUniqueNames.add(`${cfg.name}.${uq.getName()}`);
+			}
+
+			for (const idx of cfg.indexes) {
+				const sig = `${cfg.name}.${idx.config.name}`;
+				const db = dbIndexDefs.get(sig);
+				if (!db) continue; // reported by the name diff below
+				const cols = idx.config.columns.map((c) =>
+					is(c, IndexedColumn) ? (c.name ?? '<expr>') : '<expr>'
+				);
+				const ops = idx.config.columns.map((c) =>
+					is(c, IndexedColumn) ? (c.indexConfig?.opClass ?? '') : ''
+				);
+				if (cols.join(',') !== db.cols.join(','))
+					drift.push(`index ${sig}: columns drizzle=(${cols}) db=(${db.cols})`);
+				cols.forEach((name, i) => {
+					// no opclass in drizzle means "the type's default opclass"
+					const ok = ops[i] ? ops[i] === db.ops[i] : db.defaults[i];
+					if (!ok)
+						drift.push(
+							`index ${sig}: column ${name} opclass drizzle=${ops[i] || 'default'} db=${db.ops[i]}`
+						);
+				});
+				if (!!idx.config.where !== db.partial)
+					drift.push(`index ${sig}: partial drizzle=${!!idx.config.where} db=${db.partial}`);
 			}
 		}
 		for (const t of dbByTable.keys()) {
@@ -228,6 +296,8 @@ describe.skipIf(!url)('drizzle schema matches the unidb catalog', () => {
 			for (const x of db) if (!dz.has(x)) drift.push(`${kind} ${x}: missing in drizzle`);
 			for (const x of dz) if (!db.has(x)) drift.push(`${kind} ${x}: missing in database`);
 		};
+		diffSets('unique', dzUniques, dbUniques);
+		diffSets('unique constraint name', dzUniqueNames, dbUniqueNames);
 		diffSets('foreign key', dzFks, dbFks);
 		diffSets('index', dzIndexes, dbIndexes);
 		diffSets('check', dzChecks, dbChecks);
