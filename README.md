@@ -19,3 +19,16 @@ Please refer to the guide in the main sentience-workers repository.
 ## Credits
 
 The owl drawing, which is displayed in the bottom left corner, as well as used as a favicon, was created by Sylvan Franklin: <https://sylvanfranklin.com>, provided by him and used with his permission.
+
+## Development
+
+```sh
+bun install --frozen-lockfile
+DATABASE_URL=postgres://user:pass@localhost:5432/unidb bun run dev
+bun run lint    # prettier --check + eslint
+bun run check   # svelte-check
+```
+
+### Database scripts
+
+The database schema is owned by the `unidb-schema` repository (`schema/*.sql`); `src/lib/server/db/schema.ts` is only a hand-written mirror of it. `drizzle-kit push` would try to make the real database match that mirror (it drops constraints, indexes and changes column types it does not know about) and `drizzle-kit migrate` would add its own bookkeeping tables, so these are only available as `db:push:unsafe` / `db:migrate:unsafe` and refuse to run unless `DASH_ALLOW_SCHEMA_WRITE=yes-i-know-this-mutates-unidb` is set. Never run them against a shared database.
