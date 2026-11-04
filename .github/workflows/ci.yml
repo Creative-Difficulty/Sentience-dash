@@ -86,3 +86,49 @@ jobs:
 
       - name: Contract test
         run: bun run test:contract
+
+  e2e:
+    name: playwright smoke (seeded database)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17-trixie
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: unidb
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 2s --health-timeout 5s
+          --health-retries 30
+    env:
+      E2E_DATABASE_URL: postgres://postgres:postgres@localhost:5432/unidb
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout unidb-schema
+        uses: actions/checkout@v4
+        with:
+          repository: Vimothy-s-Vestibule/unidb-schema
+          path: unidb-schema
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: Apply unidb schema and seed
+        run: |
+          cat unidb-schema/schema/*.sql | psql -v ON_ERROR_STOP=1 -q "$E2E_DATABASE_URL"
+          psql -v ON_ERROR_STOP=1 -q "$E2E_DATABASE_URL" -f tests/e2e/seed.sql
+
+      - name: E2E smoke
+        run: bun run test:e2e

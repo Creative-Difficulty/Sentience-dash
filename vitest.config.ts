@@ -14,7 +14,9 @@ export default defineConfig({
 				test: {
 					name: 'unit',
 					include: ['src/**/*.test.ts'],
-					environment: 'node'
+					environment: 'node',
+					// property tests scale with FC_NUM_RUNS
+					testTimeout: 120_000
 				}
 			},
 			{
