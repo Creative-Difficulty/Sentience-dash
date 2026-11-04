@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { loadFailed } from '$lib/server/http/errors';
 import { count, gte, isNull, sql, desc, eq } from 'drizzle-orm';
 import db from '$lib';
 import { discordAccounts, messages, discordChannels } from '$lib/server/db/schema';
@@ -150,8 +151,6 @@ export const load: PageServerLoad = async () => {
 			totalHourlyMessages: totalHourlyMessages as ChartTabularData
 		};
 	} catch (e: unknown) {
-		if (e instanceof Error) {
-			return { error: e.toString() };
-		}
+		return loadFailed('overview', e);
 	}
 };
