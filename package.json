@@ -14,7 +14,7 @@
 		"format": "prettier --write .",
 		"test": "vitest run",
 		"test:unit": "vitest run --project unit",
-		"test:contract": "vitest run --project contract",
+		"test:contract": "vitest run --project contract --silent=false",
 		"test:e2e": "playwright test",
 		"test:mutation": "stryker run",
 		"db:push:unsafe": "node scripts/guard-schema-write.mjs && drizzle-kit push",
