@@ -256,8 +256,8 @@ export const discordUserPresence = pgTable(
 		index('idx_presence_history').using(
 			'btree',
 			table.userId.asc().nullsLast().op('int8_ops'),
-			table.startedAt.asc().nullsLast().op('int8_ops'),
-			table.endedAt.asc().nullsLast().op('int8_ops')
+			table.startedAt.asc().nullsLast().op('timestamptz_ops'),
+			table.endedAt.asc().nullsLast().op('timestamptz_ops')
 		),
 		index('idx_presence_time').using(
 			'btree',
@@ -562,7 +562,7 @@ export const messages = pgTable(
 		index('idx_messages_channel_sent').using(
 			'btree',
 			table.channelId.asc().nullsLast().op('int8_ops'),
-			table.sentAt.desc().nullsFirst().op('int8_ops')
+			table.sentAt.desc().nullsFirst().op('timestamptz_ops')
 		),
 		index('idx_messages_in_reply_to')
 			.using('btree', table.inReplyTo.asc().nullsLast().op('int8_ops'))
@@ -575,7 +575,7 @@ export const messages = pgTable(
 		index('idx_messages_user_sent').using(
 			'btree',
 			table.sentBy.asc().nullsLast().op('int8_ops'),
-			table.sentAt.desc().nullsFirst().op('int8_ops')
+			table.sentAt.desc().nullsFirst().op('timestamptz_ops')
 		),
 		foreignKey({
 			columns: [table.sentBy],
@@ -623,7 +623,7 @@ export const messageEdits = pgTable(
 		index('idx_message_edits_message_id').using(
 			'btree',
 			table.messageId.asc().nullsLast().op('int8_ops'),
-			table.editedAt.asc().nullsLast().op('int8_ops')
+			table.editedAt.asc().nullsLast().op('timestamptz_ops')
 		),
 		foreignKey({
 			columns: [table.messageId],
@@ -779,13 +779,15 @@ export const factAndActivityEvidence = pgTable(
 			foreignColumns: [youtubeComments.commentId],
 			name: 'fact_and_activity_evidence_youtube_comment_id_fkey'
 		}).onDelete('cascade'),
-		unique('fact_and_activity_evidence_fact_or_activity_id_message_id_y_key').on(
-			table.factOrActivityId,
-			table.messageId,
-			table.youtubeCommentId,
-			table.externalContentId,
-			table.discordPresenceId
-		),
+		unique('fact_and_activity_evidence_fact_or_activity_id_message_id_y_key')
+			.on(
+				table.factOrActivityId,
+				table.messageId,
+				table.youtubeCommentId,
+				table.externalContentId,
+				table.discordPresenceId
+			)
+			.nullsNotDistinct(),
 		check(
 			'has_single_evidence_source',
 			sql`(((((message_id IS NOT NULL))::integer + ((youtube_comment_id IS NOT NULL))::integer) + ((external_content_id IS NOT NULL))::integer) + ((discord_presence_id IS NOT NULL))::integer) = 1`
