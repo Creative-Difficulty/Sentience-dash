@@ -14,18 +14,18 @@ import {
 import { alias } from 'drizzle-orm/pg-core';
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { assembleMessages, paginate } from '$lib/server/messages/assemble';
+import { parseMessagesQuery } from '$lib/server/http/params';
 
 const PAGE_SIZE = 50;
 const REPLY_PREVIEW_LEN = 120;
 
 export const GET: RequestHandler = async ({ url }) => {
-	const channelIdStr = url.searchParams.get('channelId');
-	if (!channelIdStr) throw error(400, 'channelId required');
+	const query = parseMessagesQuery(url.searchParams);
+	if (!query.ok) error(400, query.message);
+	const { channelId, before } = query;
 
-	const beforeStr = url.searchParams.get('before');
-
-	const channelFilter = sql`${messages.channelId} = ${channelIdStr}::bigint`;
-	const beforeFilter = beforeStr ? sql`${messages.messageId} < ${beforeStr}::bigint` : undefined;
+	const channelFilter = sql`${messages.channelId} = ${channelId}::bigint`;
+	const beforeFilter = before ? sql`${messages.messageId} < ${before}::bigint` : undefined;
 	const where = beforeFilter
 		? and(channelFilter, isNull(messages.deletedAt), beforeFilter)
 		: and(channelFilter, isNull(messages.deletedAt));
@@ -49,7 +49,8 @@ export const GET: RequestHandler = async ({ url }) => {
 		})
 		.from(messages)
 		.innerJoin(discordAccounts, eq(messages.sentBy, discordAccounts.discordUserId))
-		.leftJoin(replyMsg, eq(messages.inReplyTo, replyMsg.messageId))
+		// a deleted message must not leak through the reply preview
+		.leftJoin(replyMsg, and(eq(messages.inReplyTo, replyMsg.messageId), isNull(replyMsg.deletedAt)))
 		.leftJoin(replyAccount, eq(replyMsg.sentBy, replyAccount.discordUserId))
 		.where(where)
 		.orderBy(sql`${messages.messageId} DESC`)

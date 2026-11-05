@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { loadFailed } from '$lib/server/http/errors';
 import db from '$lib';
 import { discordChannels } from '$lib/server/db/schema';
 import { asc, sql } from 'drizzle-orm';
@@ -16,6 +17,6 @@ export const load: PageServerLoad = async () => {
 
 		return { channels };
 	} catch (e: unknown) {
-		if (e instanceof Error) return { error: e.toString() };
+		return loadFailed('explorer', e);
 	}
 };

@@ -32,3 +32,26 @@ bun run check   # svelte-check
 ### Database scripts
 
 The database schema is owned by the `unidb-schema` repository (`schema/*.sql`); `src/lib/server/db/schema.ts` is only a hand-written mirror of it. `drizzle-kit push` would try to make the real database match that mirror (it drops constraints, indexes and changes column types it does not know about) and `drizzle-kit migrate` would add its own bookkeeping tables, so these are only available as `db:push:unsafe` / `db:migrate:unsafe` and refuse to run unless `DASH_ALLOW_SCHEMA_WRITE=yes-i-know-this-mutates-unidb` is set. Never run them against a shared database.
+
+### Access control and security headers
+
+The dashboard shows every recorded message and the facts the LLM inferred about users, so do not expose it publicly without access control. There is an optional built-in HTTP Basic auth gate (off by default):
+
+```sh
+DASH_BASIC_AUTH_USER=admin DASH_BASIC_AUTH_PASSWORD='long random secret' node build
+```
+
+- Enabled only when **both** variables are set; if only one is set every request gets a 500 (fails closed).
+- Credentials are compared in constant time. Basic auth sends the password with every request, so only use it behind HTTPS (e.g. a TLS-terminating reverse proxy). For SSO, put the dashboard behind an authenticating proxy instead and leave these unset.
+- `/robots.txt` and `/healthz` stay public; the hashed static build assets under `/_app` are served before the auth hook and contain no data.
+
+Every page is served with a Content-Security-Policy (`kit.csp` in `svelte.config.js`; scripts are nonce-based, inline style attributes are allowed because Svelte/carbon use them, fonts come from IBM's CDN, emoji images from Discord's CDN) plus `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy` and `Permissions-Policy` (`src/hooks.server.ts`). Database errors are logged on the server and the UI only shows a generic message.
+
+### Tests
+
+```sh
+bun run test:unit                                   # unit + property tests (FC_NUM_RUNS=2000 by default)
+CONTRACT_DATABASE_URL=postgres://... bun run test:contract   # drizzle schema vs a DB with unidb-schema applied
+E2E_DATABASE_URL=postgres://... bun run test:e2e    # Playwright smoke; DB needs unidb-schema + tests/e2e/seed.sql
+bun run test:mutation                               # Stryker on the pure modules
+```

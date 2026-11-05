@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { loadFailed } from '$lib/server/http/errors';
 import db from '$lib';
 import { discordAccounts, messages } from '$lib/server/db/schema';
 import { eq, and, isNull, sql } from 'drizzle-orm';
@@ -28,6 +29,6 @@ export const load: PageServerLoad = async () => {
 
 		return { users };
 	} catch (e: unknown) {
-		if (e instanceof Error) return { error: e.toString() };
+		return loadFailed('userdata', e);
 	}
 };

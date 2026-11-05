@@ -7,7 +7,7 @@
 		"related": false
 	},
 	"plugins": ["@stryker-mutator/vitest-runner"],
-	"mutate": ["src/lib/server/messages/**/*.ts", "!src/**/*.test.ts"],
+	"mutate": ["src/lib/server/messages/**/*.ts", "src/lib/server/http/**/*.ts", "!src/**/*.test.ts"],
 	"reporters": ["clear-text", "progress", "html"],
 	"htmlReporter": {
 		"fileName": "reports/mutation/index.html"

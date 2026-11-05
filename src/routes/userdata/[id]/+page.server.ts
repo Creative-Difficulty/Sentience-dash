@@ -8,12 +8,16 @@ import {
 	userFactsAndActivities
 } from '$lib/server/db/schema';
 import { eq, and, isNull, sql, desc } from 'drizzle-orm';
-import { error } from '@sveltejs/kit';
+import { error, isHttpError } from '@sveltejs/kit';
+import { isUuid } from '$lib/server/http/params';
+import { loadFailed } from '$lib/server/http/errors';
 
 const MESSAGE_LIMIT = 1000;
 
 export const load: PageServerLoad = async ({ params }) => {
 	const userId = params.id;
+	// not a UUID -> cannot exist; also avoids a Postgres "invalid input syntax" error
+	if (!isUuid(userId)) error(404, 'User not found');
 
 	try {
 		const user = await db
@@ -25,7 +29,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			.where(eq(vestibuleUsers.id, userId))
 			.limit(1);
 
-		if (!user.length) throw error(404, 'User not found');
+		if (!user.length) error(404, 'User not found');
 
 		const facts = await db
 			.select({
@@ -84,8 +88,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		};
 	} catch (e: unknown) {
 		// Re-throw SvelteKit errors so 404 etc. work
-		if (e && typeof e === 'object' && 'status' in e) throw e;
-		if (e instanceof Error) return { error: e.toString() };
-		throw e;
+		if (isHttpError(e)) throw e;
+		return loadFailed('userdata/[id]', e);
 	}
 };
