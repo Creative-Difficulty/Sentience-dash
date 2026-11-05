@@ -4,9 +4,6 @@
 #   docker run -p 3000:3000 -e DATABASE_URL=postgres://... sentience-dash
 #
 # The build needs no database: the DB client is created on first request.
-# Optional: --secret id=build_ca,src=/path/ca-bundle.pem to trust an extra CA
-# while `bun install` downloads packages (TLS-intercepting proxies). The secret
-# is only mounted for those RUN steps and never stored in a layer.
 
 # Pinned by version AND digest; bump both together.
 ARG BUN_IMAGE=oven/bun:1.4.4-alpine@sha256:4cf82f5686b196504fe119db3fcd9185b191f82ece82c40680e597228ec6070a
@@ -14,9 +11,7 @@ ARG BUN_IMAGE=oven/bun:1.4.4-alpine@sha256:4cf82f5686b196504fe119db3fcd9185b191f
 FROM ${BUN_IMAGE} AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
-RUN --mount=type=secret,id=build_ca \
-    if [ -s /run/secrets/build_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/build_ca; fi; \
-    bun install --frozen-lockfile
+RUN bun install --frozen-lockfile
 
 FROM ${BUN_IMAGE} AS build
 WORKDIR /app
@@ -39,9 +34,7 @@ ENV NODE_ENV=production \
 # Only runtime `dependencies` are installed; devDependencies (drizzle, postgres,
 # ...) are bundled into build/ by adapter-node.
 COPY package.json bun.lock ./
-RUN --mount=type=secret,id=build_ca \
-    if [ -s /run/secrets/build_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/build_ca; fi; \
-    bun install --frozen-lockfile --production \
+RUN bun install --frozen-lockfile --production \
     && rm -rf /root/.bun/install/cache
 
 # App files stay root-owned and read-only for the unprivileged `bun` user.
