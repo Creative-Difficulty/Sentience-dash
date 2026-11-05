@@ -7,7 +7,7 @@ import {
 	discordChannels,
 	userFactsAndActivities
 } from '$lib/server/db/schema';
-import { eq, and, isNull, sql, desc } from 'drizzle-orm';
+import { eq, and, inArray, isNull, sql, desc } from 'drizzle-orm';
 import { error, isHttpError } from '@sveltejs/kit';
 import { isUuid } from '$lib/server/http/params';
 import { loadFailed } from '$lib/server/http/errors';
@@ -73,7 +73,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			})
 			.from(messages)
 			.innerJoin(discordChannels, eq(messages.channelId, discordChannels.channelId))
-			.where(and(sql`${messages.sentBy}::text IN ${accountIds}`, isNull(messages.deletedAt)))
+			.where(and(inArray(messages.sentBy, accountIds), isNull(messages.deletedAt)))
 			.orderBy(desc(messages.sentAt))
 			.limit(MESSAGE_LIMIT + 1);
 
