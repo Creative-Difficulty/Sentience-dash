@@ -211,11 +211,11 @@
 						</Toolbar>
 						<svelte:fragment slot="cell" let:cell>
 							{#if cell.key === 'messageId'}
-								<code class="mono">{cell.value}</code>
+								<code class="mono id">{cell.value}</code>
 							{:else if cell.key === 'sentAt'}
 								<span class="ts">{formatDate(cell.value)}</span>
 							{:else if cell.key === 'channelName'}
-								<span class="channel-pill">#{cell.value}</span>
+								<span class="channel-pill" title="#{cell.value}">#{cell.value}</span>
 							{:else}
 								<span class="msg-cell">{cell.value}</span>
 							{/if}
@@ -282,6 +282,7 @@
 
 <style>
 	.header {
+		overflow-wrap: anywhere;
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
@@ -303,6 +304,12 @@
 		font-size: 0.75rem;
 		color: var(--cds-text-primary, #f4f4f4);
 		word-break: break-all;
+	}
+
+	/* Snowflake IDs read better on one line; the table scrolls instead. */
+	.id {
+		white-space: nowrap;
+		word-break: normal;
 	}
 
 	.empty {
@@ -343,6 +350,11 @@
 		font-size: 0.75rem;
 		line-height: 1rem;
 		white-space: nowrap;
+		/* Long channel names used to squeeze the Content column to ~50px. */
+		max-width: 14rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		vertical-align: middle;
 	}
 
 	.msg-cell {
@@ -351,7 +363,8 @@
 		line-clamp: 3;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
-		word-break: break-word;
+		min-width: 12rem;
+		overflow-wrap: anywhere;
 		white-space: pre-wrap;
 	}
 </style>
