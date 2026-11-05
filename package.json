@@ -15,7 +15,8 @@
 		"db:push": "drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
-		"db:studio": "drizzle-kit studio"
+		"db:studio": "drizzle-kit studio",
+		"a11y": "node scripts/a11y.mjs"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^2.0.4",
@@ -24,6 +25,7 @@
 		"@sveltejs/kit": "^2.57.0",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@types/node": "^24",
+		"axe-core": "^4.14.0",
 		"carbon-components-svelte": "^0.107.1",
 		"carbon-icons-svelte": "^13.11.0",
 		"carbon-preprocess-svelte": "^0.11.30",

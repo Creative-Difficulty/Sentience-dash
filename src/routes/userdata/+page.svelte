@@ -37,6 +37,9 @@
 
 	let pageSize = $state(25);
 	let page = $state(1);
+	// ToolbarSearch forwards unknown props to Carbon's <Search>, whose `labelText`
+	// names the role="search" landmark; ToolbarSearch's types just don't list it.
+	const searchLabel = (labelText: string) => ({ labelText }) as Record<string, string>;
 </script>
 
 <Section>
@@ -51,9 +54,9 @@
 		sortKey="messageCount"
 		sortDirection="descending"
 	>
-		<Toolbar>
+		<Toolbar aria-label="Users table toolbar">
 			<ToolbarContent>
-				<ToolbarSearch persistent shouldFilterRows />
+				<ToolbarSearch persistent shouldFilterRows {...searchLabel('Search users')} />
 			</ToolbarContent>
 		</Toolbar>
 		<svelte:fragment slot="cell" let:cell let:row>

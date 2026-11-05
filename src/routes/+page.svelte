@@ -7,8 +7,7 @@
 		Section,
 		Tag,
 		ListItem,
-		UnorderedList,
-		Heading
+		UnorderedList
 	} from 'carbon-components-svelte';
 
 	import type { PageProps } from './$types';
@@ -137,28 +136,15 @@
 			<Column lg={4} md={4} sm={4}>
 				<Tile>
 					<div class="stat-tile">
-						<p class="stat-label">Top active users in the last 24h</p>
-						<UnorderedList>
+						<h2 class="stat-label">Top active users in the last 24h</h2>
+						<UnorderedList class="user-list">
 							{#each data.mostActiveUserTwoFourH as user, index (user)}
-								<div style="line-height: 150%;">
-									<ListItem>
-										{#if index === 0}
-											<div style="padding-bottom: 3%;">
-												<Section level={3}>
-													<Heading
-														>{user.username}: {user.messageCount}
-
-														{user.messageCount == 1 ? 'message' : 'messages'}</Heading
-													>
-												</Section>
-											</div>
-										{:else}
-											{user.username}: {user.messageCount}
-
-											{user.messageCount == 1 ? 'message' : 'messages'}
-										{/if}
-									</ListItem>
-								</div>
+								<ListItem>
+									<span class:top-user={index === 0}
+										>{user.username}: {user.messageCount}
+										{user.messageCount == 1 ? 'message' : 'messages'}</span
+									>
+								</ListItem>
 							{/each}
 						</UnorderedList>
 					</div>
@@ -167,28 +153,15 @@
 			<Column lg={4} md={4} sm={4}>
 				<Tile>
 					<div class="stat-tile">
-						<p class="stat-label">Top active users alltime</p>
-						<UnorderedList>
+						<h2 class="stat-label">Top active users alltime</h2>
+						<UnorderedList class="user-list">
 							{#each data.mostActiveUsersEver as user, index (user)}
-								<div style="line-height: 150%;">
-									<ListItem>
-										{#if index === 0}
-											<div style="padding-bottom: 3%;">
-												<Section level={3}>
-													<Heading
-														>{user.username}: {user.messageCount}
-
-														{user.messageCount == 1 ? 'message' : 'messages'}</Heading
-													>
-												</Section>
-											</div>
-										{:else}
-											{user.username}: {user.messageCount}
-
-											{user.messageCount == 1 ? 'message' : 'messages'}
-										{/if}
-									</ListItem>
-								</div>
+								<ListItem>
+									<span class:top-user={index === 0}
+										>{user.username}: {user.messageCount}
+										{user.messageCount == 1 ? 'message' : 'messages'}</span
+									>
+								</ListItem>
 							{/each}
 						</UnorderedList>
 					</div>
@@ -198,7 +171,7 @@
 			<Column lg={4} md={4} sm={4}>
 				<Tile>
 					<div class="stat-tile">
-						<p class="stat-label">Total Messages</p>
+						<h2 class="stat-label">Total Messages</h2>
 						<p class="stat-value">{data.totalMessages}</p>
 					</div>
 				</Tile>
@@ -206,7 +179,7 @@
 			<Column lg={4} md={4} sm={4}>
 				<Tile>
 					<div class="stat-tile">
-						<p class="stat-label">Messages recorded in the last 24 hours</p>
+						<h2 class="stat-label">Messages recorded in the last 24 hours</h2>
 						<p class="stat-value">{data.totalMessagesLasttwoFourH}</p>
 						<Tag
 							size="sm"
@@ -300,7 +273,23 @@
 		padding: 0.5rem 0;
 	}
 
+	/* Was a <ul> with <div> children and an <h3> per top user (invalid list
+	   markup, usernames as headings). Same look, valid structure. */
+	.stat-tile :global(.user-list .bx--list__item) {
+		line-height: 150%;
+	}
+
+	.top-user {
+		display: block;
+		padding-bottom: 0.5rem;
+		font-size: 1.75rem;
+		line-height: 1.28572;
+		color: var(--cds-text-primary, #f4f4f4);
+	}
+
 	.stat-label {
+		font-weight: 400;
+		line-height: 1.5;
 		font-size: 0.75rem;
 		color: var(--cds-text-secondary, #c6c6c6);
 		text-transform: uppercase;
