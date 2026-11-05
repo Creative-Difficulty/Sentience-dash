@@ -12,7 +12,7 @@ import {
 	topic
 } from '$lib/server/db/schema';
 import { alias } from 'drizzle-orm/pg-core';
-import { eq, and, isNull, sql } from 'drizzle-orm';
+import { eq, and, inArray, isNull, sql } from 'drizzle-orm';
 import { assembleMessages, paginate } from '$lib/server/messages/assemble';
 import { parseMessagesQuery } from '$lib/server/http/params';
 
@@ -72,12 +72,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			})
 			.from(messageAttachments)
 			.innerJoin(mediaAssets, eq(messageAttachments.assetId, mediaAssets.id))
-			.where(
-				and(
-					sql`${messageAttachments.messageId}::text IN ${ids}`,
-					isNull(messageAttachments.deletedAt)
-				)
-			),
+			.where(and(inArray(messageAttachments.messageId, ids), isNull(messageAttachments.deletedAt))),
 		db
 			.select({
 				messageId: sql<string>`${messageReactions.messageId}::text`,
@@ -91,7 +86,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			.from(messageReactions)
 			.leftJoin(discordEmojis, eq(messageReactions.emojiId, discordEmojis.id))
 			.innerJoin(discordAccounts, eq(messageReactions.userId, discordAccounts.discordUserId))
-			.where(sql`${messageReactions.messageId}::text IN ${ids}`),
+			.where(inArray(messageReactions.messageId, ids)),
 		db
 			.select({
 				messageId: sql<string>`${topicMessageRelation.messageId}::text`,
@@ -100,7 +95,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			})
 			.from(topicMessageRelation)
 			.innerJoin(topic, eq(topicMessageRelation.topicId, topic.id))
-			.where(sql`${topicMessageRelation.messageId}::text IN ${ids}`)
+			.where(inArray(topicMessageRelation.messageId, ids))
 	]);
 
 	const result = assembleMessages(page, attRows, rxRows, topicRows);

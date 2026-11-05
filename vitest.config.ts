@@ -21,6 +21,23 @@ export default defineConfig({
 			},
 			{
 				extends: true,
+				resolve: {
+					alias: {
+						'$env/dynamic/private': fileURLToPath(
+							new URL('./tests/integration/env-shim.ts', import.meta.url)
+						)
+					}
+				},
+				test: {
+					name: 'integration',
+					include: ['tests/integration/**/*.test.ts'],
+					environment: 'node',
+					testTimeout: 30_000,
+					hookTimeout: 30_000
+				}
+			},
+			{
+				extends: true,
 				test: {
 					name: 'contract',
 					include: ['tests/contract/**/*.test.ts'],

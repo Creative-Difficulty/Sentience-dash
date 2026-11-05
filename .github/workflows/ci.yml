@@ -130,5 +130,10 @@ jobs:
           cat unidb-schema/schema/*.sql | psql -v ON_ERROR_STOP=1 -q "$E2E_DATABASE_URL"
           psql -v ON_ERROR_STOP=1 -q "$E2E_DATABASE_URL" -f tests/e2e/seed.sql
 
+      - name: Integration tests (server loaders against the seeded DB)
+        run: bun run test:integration
+        env:
+          INTEGRATION_DATABASE_URL: ${{ env.E2E_DATABASE_URL }}
+
       - name: E2E smoke
         run: bun run test:e2e

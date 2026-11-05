@@ -53,5 +53,6 @@ Every page is served with a Content-Security-Policy (`kit.csp` in `svelte.config
 bun run test:unit                                   # unit + property tests (FC_NUM_RUNS=2000 by default)
 CONTRACT_DATABASE_URL=postgres://... bun run test:contract   # drizzle schema vs a DB with unidb-schema applied
 E2E_DATABASE_URL=postgres://... bun run test:e2e    # Playwright smoke; DB needs unidb-schema + tests/e2e/seed.sql
+INTEGRATION_DATABASE_URL=postgres://... bun run test:integration  # loaders vs a THROWAWAY seeded DB
 bun run test:mutation                               # Stryker on the pure modules
 ```
