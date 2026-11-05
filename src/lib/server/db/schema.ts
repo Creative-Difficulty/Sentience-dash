@@ -14,10 +14,10 @@ import {
 	doublePrecision,
 	real,
 	smallint,
-	pgEnum,
-	vector
+	pgEnum
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import { bytea, embedding, snowflake } from './types';
 
 export const activityRecordType = pgEnum('activity_record_type', [
 	'activity',
@@ -33,12 +33,12 @@ export const activitySource = pgEnum('activity_source', [
 export const discordChannelType = pgEnum('discord_channel_type', [
 	'text',
 	'text_thread',
+	'public_thread',
 	'forum_post',
 	'voice',
 	'forum',
 	'stage',
-	'category',
-	'public_thread'
+	'category'
 ]);
 export const jobStatus = pgEnum('job_status', ['pending', 'in_progress', 'completed', 'failed']);
 export const jobType = pgEnum('job_type', [
@@ -71,8 +71,7 @@ export const messageAttachments = pgTable(
 	'message_attachments',
 	{
 		id: uuid().defaultRandom().primaryKey().notNull(),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		messageId: bigint('message_id', { mode: 'number' }).notNull(),
+		messageId: snowflake('message_id').notNull(),
 		assetId: uuid('asset_id').notNull(),
 		addedAt: timestamp('added_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 		deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' })
@@ -103,26 +102,21 @@ export const vestibuleUsers = pgTable(
 	{
 		id: uuid().defaultRandom().primaryKey().notNull(),
 		nickname: text(),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		// introMessageId: bigint("intro_message_id", { mode: "number" }),
-		introMessageId: text('intro_message_id'),
+		introMessageId: snowflake('intro_message_id'),
 		scoreId: uuid('score_id'),
 		scoreLastUpdated: timestamp('score_last_updated', { withTimezone: true, mode: 'string' }),
-		// TODO: failed to parse database type 'bytea'
-		currentDiagram: vector('current_diagram', { dimensions: 1536 }),
+		currentDiagram: bytea('current_diagram'),
 		currentDiagramLastUpdated: timestamp('current_diagram_last_updated', {
 			withTimezone: true,
 			mode: 'string'
 		}),
-		// TODO: failed to parse database type 'bytea'
-		introDiagram: vector('intro_diagram', { dimensions: 1536 })
+		introDiagram: bytea('intro_diagram')
 	},
 	(table) => [
-		// foreignKey({
-		//     columns: [table.introMessageId],
-		//     foreignColumns: [messages.messageId],
-		//     name: "fk_vestibule_users_intro_message"
-		// }),
+		// fk_vestibule_users_intro_message (intro_message_id -> messages.message_id)
+		// exists in the database but is not declared here: messages -> discord_accounts
+		// -> vestibule_users -> messages is a cycle that breaks drizzle's type
+		// inference. Listed as known drift in tests/contract/schema-contract.test.ts.
 		foreignKey({
 			columns: [table.scoreId],
 			foreignColumns: [scores.id],
@@ -134,8 +128,7 @@ export const vestibuleUsers = pgTable(
 export const discordAccounts = pgTable(
 	'discord_accounts',
 	{
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		discordUserId: bigint('discord_user_id', { mode: 'number' }).primaryKey().notNull(),
+		discordUserId: snowflake('discord_user_id').primaryKey().notNull(),
 		vestibuleUserId: uuid('vestibule_user_id').notNull(),
 		username: text().notNull(),
 		displayName: text('display_name').notNull()
@@ -178,10 +171,8 @@ export const messageReactions = pgTable(
 	'message_reactions',
 	{
 		id: uuid().defaultRandom().primaryKey().notNull(),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		messageId: bigint('message_id', { mode: 'number' }).notNull(),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		userId: bigint('user_id', { mode: 'number' }).notNull(),
+		messageId: snowflake('message_id').notNull(),
+		userId: snowflake('user_id').notNull(),
 		emojiId: uuid('emoji_id'),
 		reactedAt: timestamp('reacted_at', { withTimezone: true, mode: 'string' })
 			.defaultNow()
@@ -242,8 +233,7 @@ export const discordUserPresence = pgTable(
 	'discord_user_presence',
 	{
 		id: uuid().defaultRandom().primaryKey().notNull(),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		userId: bigint('user_id', { mode: 'number' }).notNull(),
+		userId: snowflake('user_id').notNull(),
 		status: presenceStatus(),
 		activityType: text('activity_type'),
 		name: text(),
@@ -254,8 +244,7 @@ export const discordUserPresence = pgTable(
 			.defaultNow()
 			.notNull(),
 		endedAt: timestamp('ended_at', { withTimezone: true, mode: 'string' }),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		evidenceMessageId: bigint('evidence_message_id', { mode: 'number' })
+		evidenceMessageId: snowflake('evidence_message_id')
 	},
 	(table) => [
 		index('idx_presence_current_activity')
@@ -267,8 +256,8 @@ export const discordUserPresence = pgTable(
 		index('idx_presence_history').using(
 			'btree',
 			table.userId.asc().nullsLast().op('int8_ops'),
-			table.startedAt.asc().nullsLast().op('int8_ops'),
-			table.endedAt.asc().nullsLast().op('int8_ops')
+			table.startedAt.asc().nullsLast().op('timestamptz_ops'),
+			table.endedAt.asc().nullsLast().op('timestamptz_ops')
 		),
 		index('idx_presence_time').using(
 			'btree',
@@ -305,9 +294,8 @@ export const connectedAccounts = pgTable(
 		bioAdditionalInfo: text('bio_additional_info'),
 		profilePicture: uuid('profile_picture'),
 		//TODO
-		nameEmbedding: vector('name_embedding', { dimensions: 1536 }),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		mentionMessageId: bigint('mention_message_id', { mode: 'number' }),
+		nameEmbedding: embedding('name_embedding'),
+		mentionMessageId: snowflake('mention_message_id'),
 		reasoning: text().notNull()
 	},
 	(table) => [
@@ -355,11 +343,8 @@ export const youtubeVideos = pgTable(
 		title: text().notNull(),
 		description: text(),
 		publishedAt: timestamp('published_at', { withTimezone: true, mode: 'string' }).notNull(),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 		totalViews: bigint('total_views', { mode: 'number' }).default(0).notNull(),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 		totalLikes: bigint('total_likes', { mode: 'number' }).default(0).notNull(),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 		totalComments: bigint('total_comments', { mode: 'number' }).default(0).notNull(),
 		keywordTags: text('keyword_tags').array(),
 		durationSeconds: integer('duration_seconds').notNull(),
@@ -453,8 +438,7 @@ export const jobs = pgTable(
 		maxAttempts: integer('max_attempts').default(3).notNull(),
 		lastError: text('last_error'),
 		youtubeVideoId: text('youtube_video_id'),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		discordChannelId: bigint('discord_channel_id', { mode: 'number' }),
+		discordChannelId: snowflake('discord_channel_id'),
 		connectedAccountId: uuid('connected_account_id'),
 		mediaAssetId: uuid('media_asset_id')
 	},
@@ -529,19 +513,17 @@ export const scores = pgTable('scores', {
 	selfReflection: doublePrecision('self_reflection').notNull(),
 	technicalCompetence: doublePrecision('technical_competence').notNull(),
 	busyness: doublePrecision().notNull(),
-	embedding: vector('embedding', { dimensions: 1536 }),
+	embedding: embedding('embedding'),
 	llmSummary: text('llm_summary')
 });
 
 export const discordChannels = pgTable(
 	'discord_channels',
 	{
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		channelId: bigint('channel_id', { mode: 'number' }).primaryKey().notNull(),
+		channelId: snowflake('channel_id').primaryKey().notNull(),
 		name: text().notNull(),
 		channelType: discordChannelType('channel_type').notNull(),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		parentChannelId: bigint('parent_channel_id', { mode: 'number' })
+		parentChannelId: snowflake('parent_channel_id')
 	},
 	(table) => [
 		foreignKey({
@@ -555,19 +537,15 @@ export const discordChannels = pgTable(
 export const messages = pgTable(
 	'messages',
 	{
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		messageId: bigint('message_id', { mode: 'number' }).primaryKey().notNull(),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		channelId: bigint('channel_id', { mode: 'number' }).notNull(),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		sentBy: bigint('sent_by', { mode: 'number' }).notNull(),
+		messageId: snowflake('message_id').primaryKey().notNull(),
+		channelId: snowflake('channel_id').notNull(),
+		sentBy: snowflake('sent_by').notNull(),
 		content: text().notNull(),
 		sentAt: timestamp('sent_at', { withTimezone: true, mode: 'string' }).notNull(),
 		addedAt: timestamp('added_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 		lastEdited: timestamp('last_edited', { withTimezone: true, mode: 'string' }),
 		deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		inReplyTo: bigint('in_reply_to', { mode: 'number' })
+		inReplyTo: snowflake('in_reply_to')
 	},
 	(table) => [
 		index('idx_messages_active')
@@ -584,7 +562,7 @@ export const messages = pgTable(
 		index('idx_messages_channel_sent').using(
 			'btree',
 			table.channelId.asc().nullsLast().op('int8_ops'),
-			table.sentAt.desc().nullsFirst().op('int8_ops')
+			table.sentAt.desc().nullsFirst().op('timestamptz_ops')
 		),
 		index('idx_messages_in_reply_to')
 			.using('btree', table.inReplyTo.asc().nullsLast().op('int8_ops'))
@@ -597,7 +575,7 @@ export const messages = pgTable(
 		index('idx_messages_user_sent').using(
 			'btree',
 			table.sentBy.asc().nullsLast().op('int8_ops'),
-			table.sentAt.desc().nullsFirst().op('int8_ops')
+			table.sentAt.desc().nullsFirst().op('timestamptz_ops')
 		),
 		foreignKey({
 			columns: [table.sentBy],
@@ -623,10 +601,9 @@ export const mediaAssets = pgTable(
 		id: uuid().defaultRandom().primaryKey().notNull(),
 		contentType: text('content_type').notNull(),
 		objectKey: text('object_key').notNull(),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 		sizeBytes: bigint('size_bytes', { mode: 'number' }),
 		contentHash: text('content_hash'),
-		embedding: vector('embedding', { dimensions: 1536 })
+		embedding: embedding('embedding')
 	},
 	(table) => [
 		unique('media_assets_object_key_key').on(table.objectKey),
@@ -638,8 +615,7 @@ export const messageEdits = pgTable(
 	'message_edits',
 	{
 		id: uuid().defaultRandom().primaryKey().notNull(),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		messageId: bigint('message_id', { mode: 'number' }).notNull(),
+		messageId: snowflake('message_id').notNull(),
 		oldContent: text('old_content').notNull(),
 		editedAt: timestamp('edited_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull()
 	},
@@ -647,7 +623,7 @@ export const messageEdits = pgTable(
 		index('idx_message_edits_message_id').using(
 			'btree',
 			table.messageId.asc().nullsLast().op('int8_ops'),
-			table.editedAt.asc().nullsLast().op('int8_ops')
+			table.editedAt.asc().nullsLast().op('timestamptz_ops')
 		),
 		foreignKey({
 			columns: [table.messageId],
@@ -662,8 +638,7 @@ export const topicMessageRelation = pgTable(
 	{
 		id: uuid().defaultRandom().primaryKey().notNull(),
 		topicId: uuid('topic_id').notNull(),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		messageId: bigint('message_id', { mode: 'number' }).notNull()
+		messageId: snowflake('message_id').notNull()
 	},
 	(table) => [
 		foreignKey({
@@ -682,8 +657,7 @@ export const topicMessageRelation = pgTable(
 export const messageClassificationAttempts = pgTable(
 	'message_classification_attempts',
 	{
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		messageId: bigint('message_id', { mode: 'number' }).primaryKey().notNull(),
+		messageId: snowflake('message_id').primaryKey().notNull(),
 		attemptedAt: timestamp('attempted_at', { withTimezone: true, mode: 'string' })
 			.defaultNow()
 			.notNull()
@@ -700,7 +674,7 @@ export const messageClassificationAttempts = pgTable(
 export const topic = pgTable('topic', {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	name: text().notNull(),
-	embedding: vector('embedding', { dimensions: 1536 })
+	embedding: embedding('embedding')
 });
 
 export const userFactsAndActivities = pgTable(
@@ -721,7 +695,7 @@ export const userFactsAndActivities = pgTable(
 		createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
 			.defaultNow()
 			.notNull(),
-		typeValueEmbedding: vector('type_value_embedding', { dimensions: 1536 })
+		typeValueEmbedding: embedding('type_value_embedding')
 	},
 	(table) => [
 		foreignKey({
@@ -734,15 +708,26 @@ export const userFactsAndActivities = pgTable(
 			foreignColumns: [vestibuleUsers.id],
 			name: 'user_facts_and_activities_user_id_fkey'
 		}).onDelete('cascade'),
-		check('user_facts_and_activities_level_check', sql`(level >= 0) AND (level <= 10)`)
+		check('user_facts_and_activities_level_check', sql`(level >= 0) AND (level <= 10)`),
+		index('idx_user_facts_and_activities_user').using('btree', table.userId.asc().nullsLast()),
+		index('idx_user_facts_and_activities_type').using(
+			'btree',
+			table.userId.asc().nullsLast(),
+			table.type.asc().nullsLast()
+		),
+		index('idx_user_facts_and_activities_started')
+			.using('btree', table.userId.asc().nullsLast(), table.startedAt.desc().nullsFirst())
+			.where(sql`(record_type = 'activity'::activity_record_type)`),
+		index('idx_user_facts_and_activities_current')
+			.using('btree', table.userId.asc().nullsLast(), table.isCurrent.asc().nullsLast())
+			.where(sql`(record_type = 'fact'::activity_record_type)`)
 	]
 );
 
 export const factExtractionAttempts = pgTable(
 	'fact_extraction_attempts',
 	{
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		messageId: bigint('message_id', { mode: 'number' }).primaryKey().notNull(),
+		messageId: snowflake('message_id').primaryKey().notNull(),
 		attemptedAt: timestamp('attempted_at', { withTimezone: true, mode: 'string' })
 			.defaultNow()
 			.notNull()
@@ -761,8 +746,7 @@ export const factAndActivityEvidence = pgTable(
 	{
 		id: uuid().defaultRandom().primaryKey().notNull(),
 		factOrActivityId: uuid('fact_or_activity_id').notNull(),
-		// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-		messageId: bigint('message_id', { mode: 'number' }),
+		messageId: snowflake('message_id'),
 		youtubeCommentId: text('youtube_comment_id'),
 		externalContentId: uuid('external_content_id'),
 		discordPresenceId: uuid('discord_presence_id'),
@@ -795,13 +779,15 @@ export const factAndActivityEvidence = pgTable(
 			foreignColumns: [youtubeComments.commentId],
 			name: 'fact_and_activity_evidence_youtube_comment_id_fkey'
 		}).onDelete('cascade'),
-		unique('fact_and_activity_evidence_fact_or_activity_id_message_id_y_key').on(
-			table.factOrActivityId,
-			table.messageId,
-			table.youtubeCommentId,
-			table.externalContentId,
-			table.discordPresenceId
-		),
+		unique('fact_and_activity_evidence_fact_or_activity_id_message_id_y_key')
+			.on(
+				table.factOrActivityId,
+				table.messageId,
+				table.youtubeCommentId,
+				table.externalContentId,
+				table.discordPresenceId
+			)
+			.nullsNotDistinct(),
 		check(
 			'has_single_evidence_source',
 			sql`(((((message_id IS NOT NULL))::integer + ((youtube_comment_id IS NOT NULL))::integer) + ((external_content_id IS NOT NULL))::integer) + ((discord_presence_id IS NOT NULL))::integer) = 1`
